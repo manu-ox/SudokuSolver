@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sudoku Solver</title>
+    <style>
+        body {
+            padding: 0;
+            margin: 0;
+            min-height: 100vh;
+            background-color: rgba(233, 194, 169, 0.744);
+            display: flex;
+            justify-content: center;
+        }
+        #game {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+        .block-table {
+            background-color: black;
+            border-collapse: collapse;
+        }
+        #board {
+            width: 450px;
+            height: 450px;
+            border: 2px solid black;
+            background-color: black;
+            border-collapse: collapse;
+        }
+        .cell {
+            width: 50px;
+            height: 50px;
+            border: 0px solid black;
+            background-color: #f2eaf2;
+        }
+        .selected-cell {
+            width: 50px;
+            height: 50px;
+            border: 0px solid black;
+            background-color: rgb(228, 197, 178);
+        }
+        select {
+            appearance: none;           
+            -webkit-appearance: none;   
+            -moz-appearance: none;      
+            text-align-last: center;
+            text-align: center;
+            font-size: 20px;
+            cursor: pointer;
+        }
+        select:disabled {
+            cursor: not-allowed;
+            opacity: 1; 
+        }
+        .solve-button, .speed-button {
+            margin: 25px 10px;
+            width: 100px;
+            height: 30px;
+            border-radius: 12px;
+            border: 2px solid black;
+            font-size: larger;
+            cursor: pointer;
+        }
+        .reset-button {
+            cursor: pointer;
+            font-size: large;
+            border-radius: 6px;
+        }
+    </style>
+
+    <script>
+        const sudokuMatrix = new Array(9);
+        const sudokuMatrixCopy = new Array(9);
+        for(let i=0; i < 9; i++) {
+            sudokuMatrix[i] = new Array(9);
+            sudokuMatrixCopy[i] = new Array(9);
+        }
+
+        function getCellValue(row, col) {
+            return Number(sudokuMatrix[row][col].value);
+        }
+
+        function setCellVale(row, col, value) {
+            sudokuMatrix[row][col].selectedIndex = value;
+        }
+
+        function copySudoku() {
+            for (r=0; r < 9; r++) {
+                for (c=0; c < 9; c++) {
+                    sudokuMatrixCopy[r][c] = getCellValue(r, c);
+                }
+            }
+        }
+
+        function resetSudoku() {
+            isTerminated = true;
+            copySudoku();
+            for (r=0; r < 9; r++) {
+                for (c=0; c < 9; c++) {
+                    setCellVale(r, c, 0)
+                }
+            }
+        }
+
+        function createCell(row, col) {
+            const cell = document.createElement("select");
+            cell.className = 'cell';
+            cell.id = `${row}${col}`;
+            
+            for(let i=0; i <= 9; i++) {
+                const option = document.createElement('option');
+                if (i == 0) {
+                    option.textContent = ''
+                } else {
+                    option.textContent = i;
+                }
+                option.value = i;
+                cell.append(option)
+            }
+            sudokuMatrix[row][col] = cell;
+
+            cell.addEventListener('change', markOnSelectionEvent)
+
+            return cell;
+        }
+
+        function drawBoard() {
+            // block = 3x3 cells
+            // board = 3x3 blocks
+            // +------+-----+-------+
+            // | cell |     |       |
+            // +------+     |       |
+            // |      block |       |
+            // +------------+       |
+            // |                    |
+            // |              board |
+            // +--------------------+
+
+            const board = document.getElementById('board');
+            for(c=0; c < 3; c++) {
+                const boardRow = document.createElement('tr');
+                boardRow.className = 'board-row';
+
+                for(s=0; s < 3; s++) {
+                    const blockContainer = document.createElement('td');
+                    const blockTable = document.createElement('table');
+                    blockTable.className = 'block-table';
+
+                    for(r=0; r < 3; r++) {
+                        const blockRow = document.createElement('tr');
+                        blockRow.className = 'block-row'
+
+                        for(let i=0; i < 3; i++) {
+                            const cellSpace = document.createElement('td');
+                            cellSpace.className = 'cell-space';
+
+                            const row = (c * 3) + r;
+                            const col = (s * 3) + i;
+
+                            cellSpace.append(createCell(row, col))
+                            blockRow.append(cellSpace)
+                        }
+                        blockTable.append(blockRow);
+                        blockContainer.append(blockTable)
+                    }
+                    boardRow.append(blockContainer)
+                }
+                board.append(boardRow)
+            }
+        }
+
+        function markOnSelectionEvent(event) {
+            const element = document.getElementById(event.target.id);
+            if (event.target.value == 0) {
+                event.target.className = 'cell';
+            } else {
+                event.target.className = 'selected-cell';
+            }
+        }
+
+        function removeMark() {
+            for (r=0; r < 9; r++) {
+                for (c=0; c < 9; c++) {
+                    if (getCellValue(r, c) !== 0) {
+                        sudokuMatrix[r][c].className = 'selected-cell'
+                    } else {
+                        sudokuMatrix[r][c].className = 'cell'
+                    }
+                }
+            }
+        }
+
+        function disableSelection() {
+            for(let r=0; r < 9; r++) {
+                for(let c=0; c < 9; c++) {
+                    sudokuMatrix[r][c].disabled = true;
+                }
+            }
+        }
+
+        function enableSelection() {
+            for(let r=0; r < 9; r++) {
+                for(let c=0; c < 9; c++) {
+                    sudokuMatrix[r][c].disabled = false;
+                }
+            }
+        }
+
+        function _isSafe(row, col, number) {
+            if (number == 0) return false
+            // Checking rows
+            for(let r=0; r < 9; r++) {
+                if (r != row && getCellValue(r, col) == number) {
+                    return false
+                }
+            }
+
+            // Checking columns
+            for(let c=0; c < 9; c++) {
+                if (c != col && getCellValue(row, c) == number) {
+                    return false
+                }
+            }
+
+            // Checking block
+            const x = Math.floor(row / 3) * 3
+            const y = Math.floor(col / 3) * 3
+            for(let r=x; r < x+3; r++) {
+                for(let c=y; c < y+3; c++) {
+                    if (r !== row || c !== col) {
+                        if (getCellValue(r, c) == number) {
+                            return false
+                        }
+                    }
+                }
+            }
+
+            return true;
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        function _incrementSlot(row, col) {
+            const incremented_col = (col + 1) % 9
+            if (incremented_col == 0) {
+                return [row + 1, incremented_col]
+            }
+            return [row, incremented_col]
+        }
+
+        function _incrementNumber(row, col) {
+            if (row == -1) return [-1, -1];
+
+            if (sudokuMatrixCopy[row][col] == 0) {
+                const value = getCellValue(row, col)
+                if (value < 9) {
+                    setCellVale(row, col, value + 1);
+                    return [row, col]
+                }
+                setCellVale(row, col, 0)
+            }
+
+            if (col === 0) {
+                return _incrementNumber(row - 1, 8);
+            }
+            return _incrementNumber(row, col - 1);
+        }
+
+        var fastForward = false;
+        var isTerminated = false;
+        var solveProcessLocked = false;
+
+        function speedUp() {
+            fastForward = true;
+        }
+        
+        function restore() {
+            isTerminated = true;
+
+            // Copy preset values
+            for(r=0; r < 9; r++) {
+                for(c=0; c < 9; c++) {
+                    setCellVale(r, c, sudokuMatrixCopy[r][c])
+                }
+            }
+        }
+
+        async function solveSudoku() {
+            let row=0, col=0;
+
+            while (row < 9) {
+                if (! fastForward) await sleep(0);
+
+                if (isTerminated) return
+
+                if (_isSafe(row, col, getCellValue(row, col))) {
+                    [row, col] = _incrementSlot(row, col);
+                    continue;
+                }
+                [row, col] = _incrementNumber(row, col);
+
+                if (row == -1) return false
+            }
+        }
+
+        async function solve() {
+            if (solveProcessLocked) return
+            solveProcessLocked = true;
+
+            disableSelection();
+            copySudoku();
+
+            const result = await solveSudoku();
+            if (result === false && (! isTerminated)) {
+                alert("NO SOLUTIONS FOUND!")
+            }
+
+            enableSelection();
+            solveProcessLocked = false;
+            fastForward = false;
+            isTerminated = false;
+        }
+ 
+        document.addEventListener("DOMContentLoaded", drawBoard)
+
+    </script>
+
+</head>
+<body>
+
+    <div id="game">
+        <table id="board"></table>
+        <div>
+            <input class="speed-button" type="button" value="<<" onclick="restore()">
+            <input class="solve-button" type="button" value="Solve" onclick="solve()">
+            <input class="speed-button" type="button" value=">>" onclick="speedUp()">
+        </div>
+        <input class="reset-button" type="button" value="reset" onclick="resetSudoku()">
+        
+    </div>
+
+</body>
+</html>
