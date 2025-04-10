@@ -24,23 +24,26 @@
             border-collapse: collapse;
         }
         #board {
-            width: 450px;
-            height: 450px;
             border: 2px solid black;
             background-color: black;
             border-collapse: collapse;
         }
-        .cell {
+        .cell, .selected-cell {
             width: 50px;
             height: 50px;
             border: 0px solid black;
+        }
+        .cell {
             background-color: #f2eaf2;
         }
         .selected-cell {
-            width: 50px;
-            height: 50px;
-            border: 0px solid black;
             background-color: rgb(228, 197, 178);
+        }
+        @media (max-width: 600px) {
+            .cell, .selected-cell {
+                width: 40px;
+                height: 40px;
+            }
         }
         select {
             appearance: none;           
