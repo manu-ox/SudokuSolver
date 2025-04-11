@@ -6,7 +6,7 @@ import { serveFile } from "https://deno.land/std@0.181.0/http/file_server.ts";
 
 const INDEX_PAGE = "index.html";
 const CSS_FILE_PATH = "static/style.css"
-const JS_FILE_PATH = "static/script.css"
+const JS_FILE_PATH = "static/script.js"
 
 Deno.serve(async (request: Request) => {
   const url = new URL(request.url);
