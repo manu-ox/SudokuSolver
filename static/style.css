@@ -37,7 +37,7 @@ body {
     background-color: #fb6262;
 }
 @media (max-width: 600px) {
-    .cell, .selected-cell {
+    .cell, .selected-cell, .invalid-cell {
         width: 30px;
         height: 30px;
     }
