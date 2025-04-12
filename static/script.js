@@ -3,7 +3,7 @@ const Title = Object.freeze({
     SOLVING: "Solving..",
     SOLVED: "Solved",
     NOSULUTION: "ERROR No Solution!",
-    INVALIDINPUT: "Invaid Input!"
+    INVALIDINPUT: "Invalid Input!"
 })
 
 const SolveResult = Object.freeze({
