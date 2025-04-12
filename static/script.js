@@ -2,7 +2,15 @@ const Title = Object.freeze({
     DEFAULT: "Sudoku Solver",
     SOLVING: "Solving..",
     SOLVED: "Solved",
-    NOSULUTION: "No Solution!",
+    NOSULUTION: "ERROR No Solution!",
+    INVALIDINPUT: "Invaid Input!"
+})
+
+const SolveResult = Object.freeze({
+    SUCCESS: 1,
+    NOSULUTION: 0,
+    TERMINATED: -1,
+    INVALIDINPUT: -2
 })
 
 
@@ -25,6 +33,8 @@ class Utils {
         } else {
             event.target.className = 'cell';
         }
+
+        Sudoku.validate()
     }
 
     static editTitle(text) {
@@ -53,7 +63,7 @@ class Utils {
     }
     static resetButtonClickHandler() {
         if (! SolveProcess.isLocked()) {
-            StateStack.insertCurrentMatrix()
+            StateStack.pushCurrentMatrix()
         }
         Sudoku.reset()
     }
@@ -61,21 +71,17 @@ class Utils {
     static async solveButtonClickHandler() {
         if (SolveProcess.isLocked()) return
     
-        SolveProcess.lock()
-        StateStack.insertCurrentMatrix()
-        Utils.editTitle(Title.SOLVING)
+        const result = await SolveProcess.run()
     
-        const solved = await Sudoku.solve()
-    
-        if (solved) {
+        if (result === SolveResult.SUCCESS) {
             Utils.editTitle(Title.SOLVED)
-        } else if (SolveProcess.isTerminated()) {
+        } else if (result === SolveResult.TERMINATED) {
             Utils.editTitle(Title.DEFAULT)
+        } else if (result === SolveResult.INVALIDINPUT) {
+            Utils.editTitle(Title.INVALIDINPUT)
         } else {
             Utils.editTitle(Title.NOSULUTION)
         }
-    
-        SolveProcess.unlock()
     }
     
 }
@@ -107,13 +113,76 @@ class SolveProcess {
 
     static fastForward = () => { SolveProcess._isFastForwarding = true }
     static isFastForwarding = () => { return SolveProcess._isFastForwarding }
+
+    static async run() {
+        const isValid = Sudoku.validate();
+        if (! isValid) return SolveResult.INVALIDINPUT
+
+        SolveProcess.lock()
+
+        StateStack.pushCurrentMatrix()
+        Utils.editTitle(Title.SOLVING)
+
+        Sudoku.copyPresetValues()
+
+        const incrementSlot = (row, col) => {
+            const incremented_col = (col + 1) % 9
+            if (incremented_col == 0) {
+                return [row + 1, incremented_col]
+            }
+            return [row, incremented_col]
+        }
+
+        const incrementNumber = (row, col) => {
+            if (row === -1) return [-1, -1];
+        
+            if (Sudoku.sudokuPresetMatrix[row][col] === 0) {
+                const value = Sudoku.getCellValue(row, col)
+                if (value < 9) {
+                    Sudoku.setCellValue(row, col, value + 1);
+                    return [row, col]
+                }
+                Sudoku.setCellValue(row, col, 0)
+            }
+        
+            if (col === 0) {
+                return incrementNumber(row - 1, 8);
+            }
+            return incrementNumber(row, col - 1);
+        }
+
+        const solveSudoku = async () => {
+            let row=0, col=0;
+        
+            while (row < 9) {
+                if (! SolveProcess.isFastForwarding()) {
+                    await Utils.sleep(0)
+                }
+        
+                if (SolveProcess.isTerminated()) return SolveResult.TERMINATED
+        
+                if (Sudoku.isSafeValue(row, col)) {
+                    [row, col] = incrementSlot(row, col);
+                    continue;
+                }
+                [row, col] = incrementNumber(row, col);
+        
+                if (row === -1) return SolveResult.NOSULUTION
+            }
+            return SolveResult.SUCCESS
+        }
+        const result = await solveSudoku()
+        SolveProcess.unlock()
+
+        return result
+    }
 }
 
 class StateStack {
     static undoStack = new Array();
     static redoStack = new Array();
 
-    static insertCurrentMatrix() { 
+    static pushCurrentMatrix() { 
         // Done by solve and reset processes
 
         if (StateStack.undoStack.length !== 0) {
@@ -162,7 +231,6 @@ class StateStack {
 
         StateStack.undoStack.push(Sudoku.getCopy())
 
-    
         return StateStack.redoStack.pop()
     }
 }
@@ -285,6 +353,55 @@ class Sudoku {
         }
     }
 
+    static isSafeValue(row, col) {
+        const number = Sudoku.getCellValue(row, col);
+
+        if (number === 0) return false
+
+        // Checking all rows
+        for(let r=0; r < 9; r++) {
+            if (r != row && Sudoku.getCellValue(r, col) === number) {
+                return false
+            }
+        }
+        // Checking all columns
+        for(let c=0; c < 9; c++) {
+            if (c != col && Sudoku.getCellValue(row, c) === number) {
+                return false
+            }
+        }
+        // Checking within the block
+        const x = Math.floor(row / 3) * 3
+        const y = Math.floor(col / 3) * 3
+        for(let r=x; r < x+3; r++) {
+            for(let c=y; c < y+3; c++) {
+                if (r !== row || c !== col) {
+                    if (Sudoku.getCellValue(r, c) === number) {
+                        return false
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+    static validate() {
+        let isValid = true;
+        for (let row=0; row < 9; row++) {
+            for (let col=0; col < 9; col++) {
+                if (Sudoku.getCellValue(row, col) === 0) {
+                    Sudoku.sudokuMatrix[row][col].className = 'cell'
+                } else if (Sudoku.isSafeValue(row, col)) {
+                    Sudoku.sudokuMatrix[row][col].className = 'selected-cell'
+                } else {
+                    Sudoku.sudokuMatrix[row][col].className = 'invalid-cell'
+                    isValid = false
+                }
+            }
+        }
+        return isValid
+    }
+
     static getCellValue(row, col) {
         return Number(Sudoku.sudokuMatrix[row][col].value);
     }
@@ -331,19 +448,8 @@ class Sudoku {
                 Sudoku.setCellValue(row, col, 0);
             }
         }
-        Sudoku.markSelection()
-    }
-
-    static markSelection() {
-        for (let r=0; r < 9; r++) {
-            for (let c=0; c < 9; c++) {
-                if (Sudoku.getCellValue(r, c) !== 0) {
-                    Sudoku.sudokuMatrix[r][c].className = 'selected-cell'
-                } else {
-                    Sudoku.sudokuMatrix[r][c].className = 'cell'
-                }
-            }
-        }
+        Sudoku.validate()
+        Utils.editTitle(Title.DEFAULT)
     }
 
     static disableSelection() {
@@ -368,90 +474,9 @@ class Sudoku {
                 Sudoku.setCellValue(row, col, matrix[row][col])
             }
         }
-        Sudoku.markSelection()
+        Sudoku.validate()
     }
 
-    static async solve() {
-        Sudoku.copyPresetValues()
-
-        const isSafe = (row, col, number) => {
-            if (number === 0) return false
-
-            // Checking all rows
-            for(let r=0; r < 9; r++) {
-                if (r != row && Sudoku.getCellValue(r, col) === number) {
-                    return false
-                }
-            }
-            // Checking all columns
-            for(let c=0; c < 9; c++) {
-                if (c != col && Sudoku.getCellValue(row, c) === number) {
-                    return false
-                }
-            }
-            // Checking within the block
-            const x = Math.floor(row / 3) * 3
-            const y = Math.floor(col / 3) * 3
-            for(let r=x; r < x+3; r++) {
-                for(let c=y; c < y+3; c++) {
-                    if (r !== row || c !== col) {
-                        if (Sudoku.getCellValue(r, c) === number) {
-                            return false
-                        }
-                    }
-                }
-            }
-            return true;
-        }
-
-        const incrementSlot = (row, col) => {
-            const incremented_col = (col + 1) % 9
-            if (incremented_col == 0) {
-                return [row + 1, incremented_col]
-            }
-            return [row, incremented_col]
-        }
-
-        const incrementNumber = (row, col) => {
-            if (row === -1) return [-1, -1];
-        
-            if (Sudoku.sudokuPresetMatrix[row][col] === 0) {
-                const value = Sudoku.getCellValue(row, col)
-                if (value < 9) {
-                    Sudoku.setCellValue(row, col, value + 1);
-                    return [row, col]
-                }
-                Sudoku.setCellValue(row, col, 0)
-            }
-        
-            if (col === 0) {
-                return incrementNumber(row - 1, 8);
-            }
-            return incrementNumber(row, col - 1);
-        }
-
-        const solveSudoku = async () => {
-            let row=0, col=0;
-        
-            while (row < 9) {
-                if (! SolveProcess.isFastForwarding()) {
-                    await Utils.sleep(0)
-                }
-        
-                if (SolveProcess.isTerminated()) return false
-        
-                if (isSafe(row, col, Sudoku.getCellValue(row, col))) {
-                    [row, col] = incrementSlot(row, col);
-                    continue;
-                }
-                [row, col] = incrementNumber(row, col);
-        
-                if (row === -1) return false
-            }
-            return true
-        }
-        return await solveSudoku()
-    }
 }
 
 
