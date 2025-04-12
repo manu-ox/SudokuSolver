@@ -83,6 +83,14 @@ class Utils {
             Utils.editTitle(Title.NOSULUTION)
         }
     }
+
+    static makeFastforwardButton() {
+        document.getElementById('redo-button').className = 'fastforward-button'
+    }
+
+    static removeFastforwardButton() {
+        document.getElementById('redo-button').className = 'control-button'
+    }
     
 }
 
@@ -124,6 +132,7 @@ class SolveProcess {
         Utils.editTitle(Title.SOLVING)
 
         Sudoku.copyPresetValues()
+        Utils.makeFastforwardButton()
 
         const incrementSlot = (row, col) => {
             const incremented_col = (col + 1) % 9
@@ -172,8 +181,8 @@ class SolveProcess {
             return SolveResult.SUCCESS
         }
         const result = await solveSudoku()
+        Utils.removeFastforwardButton()
         SolveProcess.unlock()
-
         return result
     }
 }
@@ -248,18 +257,21 @@ class Sudoku {
         const controlButtonSpace = document.getElementById('control-button-space');
 
         const undoButton = document.createElement('input');
+        undoButton.id = 'undo-button'
         undoButton.type = 'button'
         undoButton.value = '<<'
         undoButton.className = "control-button"
         undoButton.addEventListener('click', Utils.undoButtonClickHandler)
 
         const redoButton = document.createElement('input');
+        redoButton.id = 'redo-button'
         redoButton.type = 'button'
         redoButton.value = '>>'
         redoButton.className = "control-button"
         redoButton.addEventListener('click', Utils.redoButtonClickHandler)
 
         const solveButton = document.createElement('input');
+        solveButton.id = 'solve-button'
         solveButton.type = 'button'
         solveButton.value = 'Solve'
         solveButton.className = "control-button"
