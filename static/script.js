@@ -48,6 +48,7 @@ class Utils {
         if (matrix) {
             Sudoku.restoreFrom(matrix)
         }
+        Utils.editTitle(Title.DEFAULT)
     }
     static redoButtonClickHandler() {
         // Redo button act as fastforward button when solving in progress.
@@ -60,6 +61,7 @@ class Utils {
         if (matrix) {
             Sudoku.restoreFrom(matrix)
         }
+        Utils.editTitle(Title.DEFAULT)
     }
     static resetButtonClickHandler() {
         if (! SolveProcess.isLocked()) {
