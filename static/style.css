@@ -74,7 +74,7 @@ select:disabled {
     border-radius: 6px;
     border: 2px solid #373737;
 }
-.control-button:hover, #reset-button:hover, .fastforward-button:hover {
+.control-button:active, #reset-button:active, .fastforward-button:active {
     transform: scale(0.95);
     background-color: rgb(247, 207, 186);
 }

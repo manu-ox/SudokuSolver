@@ -2,7 +2,7 @@ const Title = Object.freeze({
     DEFAULT: "Sudoku Solver",
     SOLVING: "Solving..",
     SOLVED: "Solved",
-    NOSULUTION: "ERROR No Solution!",
+    NOSULUTION: "No Solution!",
     INVALIDINPUT: "Invalid Input!"
 })
 
@@ -65,7 +65,7 @@ class Utils {
     }
     static resetButtonClickHandler() {
         if (! SolveProcess.isLocked()) {
-            StateStack.pushCurrentMatrix()
+            StateStack.pushCurrentState()
         }
         Sudoku.reset()
     }
@@ -130,7 +130,7 @@ class SolveProcess {
 
         SolveProcess.lock()
 
-        StateStack.pushCurrentMatrix()
+        StateStack.pushCurrentState()
         Utils.editTitle(Title.SOLVING)
 
         Sudoku.copyPresetValues()
@@ -193,7 +193,7 @@ class StateStack {
     static undoStack = new Array();
     static redoStack = new Array();
 
-    static pushCurrentMatrix() { 
+    static pushCurrentState() { 
         // Done by solve and reset processes
 
         if (StateStack.undoStack.length !== 0) {
