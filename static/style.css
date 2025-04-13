@@ -60,7 +60,7 @@ select:disabled {
     opacity: 1; 
 }
 .control-button, .fastforward-button {
-    margin: 25px 10px;
+    margin: 20px 10px;
     width: 100px;
     height: 30px;
     border-radius: 12px;
@@ -87,4 +87,9 @@ h1#title {
 @keyframes moving {
     0% {padding-left: 0px;}
     100% {padding-left: 20px;}
+}
+.center {
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }

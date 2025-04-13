@@ -1,9 +1,9 @@
 const Title = Object.freeze({
-    DEFAULT: "Sudoku Solver",
-    SOLVING: "Solving..",
-    SOLVED: "Solved",
-    NOSULUTION: "No Solution!",
-    INVALIDINPUT: "Invalid Input!"
+    DEFAULT: "sudoku solver",
+    SOLVING: "solving..",
+    SOLVED: "solved",
+    NOSULUTION: "no solution!",
+    INVALIDINPUT: "invalid input!"
 })
 
 const SolveResult = Object.freeze({
@@ -252,44 +252,21 @@ class Sudoku {
 
     static setup() {
         Sudoku.drawBoard()
-        Sudoku.createButtons()
+        Sudoku.enableButtons()
     }
     
-    static createButtons() {
-        const controlButtonSpace = document.getElementById('control-button-space');
-
-        const undoButton = document.createElement('input');
-        undoButton.id = 'undo-button'
-        undoButton.type = 'button'
-        undoButton.value = '<<'
-        undoButton.className = "control-button"
+    static enableButtons() {
+        const undoButton = document.getElementById('undo-button');
         undoButton.addEventListener('click', Utils.undoButtonClickHandler)
 
-        const redoButton = document.createElement('input');
-        redoButton.id = 'redo-button'
-        redoButton.type = 'button'
-        redoButton.value = '>>'
-        redoButton.className = "control-button"
+        const redoButton = document.getElementById('redo-button');
         redoButton.addEventListener('click', Utils.redoButtonClickHandler)
 
-        const solveButton = document.createElement('input');
-        solveButton.id = 'solve-button'
-        solveButton.type = 'button'
-        solveButton.value = 'Solve'
-        solveButton.className = "control-button"
+        const solveButton = document.getElementById('solve-button');
         solveButton.addEventListener('click', Utils.solveButtonClickHandler)
 
-        controlButtonSpace.appendChild(undoButton)
-        controlButtonSpace.appendChild(solveButton)
-        controlButtonSpace.appendChild(redoButton)
-
-        const resetButton = document.createElement('input')
-        resetButton.type = 'button'
-        resetButton.value = 'reset'
-        resetButton.id = 'reset-button'
+        const resetButton = document.getElementById('reset-button')
         resetButton.addEventListener('click', Utils.resetButtonClickHandler)
-        document.getElementById('reset-button-space').appendChild(resetButton)
-
     }
 
     static drawBoard() {
