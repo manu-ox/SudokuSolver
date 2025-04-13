@@ -54,6 +54,7 @@ select {
     text-align: center;
     font-size: 20px;
     cursor: pointer;
+    font-family: inherit
 }
 select:disabled {
     cursor: not-allowed;
@@ -67,12 +68,14 @@ select:disabled {
     border: 2px solid #373737;
     font-size: larger;
     cursor: pointer;
+    font-family: inherit
 }
 #reset-button {
     cursor: pointer;
     font-size: large;
     border-radius: 6px;
     border: 2px solid #373737;
+    font-family: inherit
 }
 .control-button:active, #reset-button:active, .fastforward-button:active {
     transform: scale(0.95);
