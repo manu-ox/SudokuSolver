@@ -86,6 +86,23 @@ class Utils {
         }
     }
 
+    static speedIncreaseButtonEvent() {
+        SolveProcess.increaseSpeed()
+        Utils.setSpeedDisplayText()
+    }
+    static speedReduceButtonEvent() {
+        SolveProcess.reduceSpeed()
+        Utils.setSpeedDisplayText()
+    }
+    static speedDisplayButtonEvent() {
+        SolveProcess.increaseSpeed(true)
+        Utils.setSpeedDisplayText()
+    }
+
+    static setSpeedDisplayText() {
+        document.getElementById('speed-display').value = SolveProcess.getSpeedText()
+    }
+
     static makeFastforwardButton() {
         document.getElementById('redo-button').className = 'fastforward-button'
     }
@@ -101,19 +118,45 @@ class SolveProcess {
     static _isTerminated = false
     static _isFastForwarding = false
 
+    static speedValues = [['0.25x', 256], ['0.5x', 128], ['1x', 32], ['2x', 8], ['4x', 1]];
+    static speedIndex = SolveProcess.speedValues.length - 1
+
+    static async slowDown() {
+        await Utils.sleep(
+            SolveProcess.speedValues[SolveProcess.speedIndex][1]
+        )
+    }
+
+    static increaseSpeed(cycle) {
+        if (SolveProcess.speedIndex === SolveProcess.speedValues.length - 1) {
+            if (cycle)
+                SolveProcess.speedIndex = 0
+        } else {
+            SolveProcess.speedIndex += 1
+        }
+    }
+
+    static reduceSpeed() {
+        SolveProcess.speedIndex = Math.max(0, SolveProcess.speedIndex - 1)
+    }
+
+    static getSpeedText() {
+        return SolveProcess.speedValues[SolveProcess.speedIndex][0]
+    }
+
     static clearSettings() {
         SolveProcess._isTerminated = false
         SolveProcess._isFastForwarding = false
     }
 
     static lock = () => {
-        SolveProcess._isLocked = true
         SolveProcess.clearSettings()
+        SolveProcess._isLocked = true
         Sudoku.disableSelection()
     }
     static unlock = () => {
-        SolveProcess._isLocked = false
         SolveProcess.clearSettings()
+        SolveProcess._isLocked = false
         Sudoku.enableSelection()
     }
     static isLocked = () => { return SolveProcess._isLocked }
@@ -167,7 +210,7 @@ class SolveProcess {
         
             while (row < 9) {
                 if (! SolveProcess.isFastForwarding()) {
-                    await Utils.sleep(0)
+                    await SolveProcess.slowDown()
                 }
         
                 if (SolveProcess.isTerminated()) return SolveResult.TERMINATED
@@ -253,6 +296,7 @@ class Sudoku {
     static setup() {
         Sudoku.drawBoard()
         Sudoku.enableButtons()
+        Utils.setSpeedDisplayText()
     }
     
     static enableButtons() {
@@ -267,6 +311,15 @@ class Sudoku {
 
         const resetButton = document.getElementById('reset-button')
         resetButton.addEventListener('click', Utils.resetButtonClickHandler)
+
+        const speedReducer = document.getElementById('speed-reducer')
+        speedReducer.addEventListener('click', Utils.speedReduceButtonEvent)
+
+        const speedIncreaser = document.getElementById('speed-increaser')
+        speedIncreaser.addEventListener('click', Utils.speedIncreaseButtonEvent)
+
+        const speedDisplay = document.getElementById('speed-display')
+        speedDisplay.addEventListener('click', Utils.speedDisplayButtonEvent)
     }
 
     static drawBoard() {
