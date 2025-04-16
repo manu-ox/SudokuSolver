@@ -3,14 +3,16 @@ const Title = Object.freeze({
     SOLVING: "solving..",
     SOLVED: "solved",
     NOSULUTION: "no solution!",
-    INVALIDINPUT: "invalid input!"
+    INVALIDINPUT: "invalid input!",
+    TIMEOUT: "timeout!"
 })
 
 const SolveResult = Object.freeze({
     SUCCESS: 1,
     NOSULUTION: 0,
     TERMINATED: -1,
-    INVALIDINPUT: -2
+    INVALIDINPUT: -2,
+    TIMEOUT: -3
 })
 
 
@@ -81,6 +83,8 @@ class Utils {
             Utils.editTitle(Title.DEFAULT)
         } else if (result === SolveResult.INVALIDINPUT) {
             Utils.editTitle(Title.INVALIDINPUT)
+        } else if (result === SolveResult.TIMEOUT) {
+            Utils.editTitle(Title.TIMEOUT)
         } else {
             Utils.editTitle(Title.NOSULUTION)
         }
@@ -117,6 +121,8 @@ class SolveProcess {
     static _isLocked = false
     static _isTerminated = false
     static _isFastForwarding = false
+    static _fastForwardingStartedTime
+    static _fastForwardingTimeLimit = 1000 * 5  // 5 seconds
 
     static speedValues = [['0.25x', 256], ['0.5x', 128], ['1x', 32], ['2x', 8], ['4x', 1]];
     static speedIndex = SolveProcess.speedValues.length - 1
@@ -164,8 +170,17 @@ class SolveProcess {
     static terminate = () => { SolveProcess._isTerminated = true }
     static isTerminated = () => { return SolveProcess._isTerminated }
 
-    static fastForward = () => { SolveProcess._isFastForwarding = true }
+    static fastForward = () => {
+        SolveProcess._isFastForwarding = true
+        SolveProcess._fastForwardingStartedTime = performance.now()
+    }
     static isFastForwarding = () => { return SolveProcess._isFastForwarding }
+
+    static isTimedOut = () => {
+        if ((performance.now() - SolveProcess._fastForwardingStartedTime) > SolveProcess._fastForwardingTimeLimit)  
+            return true
+        return false
+    }
 
     static async run() {
         const isValid = Sudoku.validate();
@@ -209,7 +224,12 @@ class SolveProcess {
             let row=0, col=0;
         
             while (row < 9) {
-                if (! SolveProcess.isFastForwarding()) {
+                if (SolveProcess.isFastForwarding()) {
+                    if (SolveProcess.isTimedOut()) {
+                        Sudoku.restoreFrom(Sudoku.sudokuPresetMatrix)
+                        return SolveResult.TIMEOUT
+                    }
+                } else {
                     await SolveProcess.slowDown()
                 }
         

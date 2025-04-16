@@ -39,11 +39,24 @@ body {
 .invalid-cell {
     background-color: #fb6262;
 }
+.control-button, .fastforward-button {
+    margin: 20px 10px;
+    width: 100px;
+    height: 30px;
+    border-radius: 5px;
+    border: 2px solid #373737;
+    font-size: larger;
+    font-family: inherit
+}
 @media (max-width: 600px) {
     .cell, .selected-cell, .invalid-cell {
         width: 30px;
         height: 30px;
     }
+    .control-button, .fastforward-button {
+        width: 80px;
+    }
+
 }
 select {
     appearance: none;           
@@ -58,15 +71,6 @@ select {
 select:disabled {
     cursor: not-allowed;
     opacity: 1; 
-}
-.control-button, .fastforward-button {
-    margin: 20px 10px;
-    width: 100px;
-    height: 30px;
-    border-radius: 5px;
-    border: 2px solid #373737;
-    font-size: larger;
-    font-family: inherit
 }
 #reset-button {
     font-size: large;
