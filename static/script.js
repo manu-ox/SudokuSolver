@@ -44,8 +44,8 @@ class Utils {
     }
 
     static undoButtonClickHandler() {
+        const matrix = StateStack.popFromLeft({ saveCurrentState: SolveProcess.isTerminated() })
         SolveProcess.terminate()
-        const matrix = StateStack.popFromLeft()
 
         if (matrix) {
             Sudoku.restoreFrom(matrix)
@@ -273,7 +273,7 @@ class StateStack {
 
     }
 
-    static popFromLeft() {
+    static popFromLeft({saveCurrentState = true}) {
         // Done by undo operation
 
         if (StateStack.undoStack.length === 0) return
@@ -285,9 +285,10 @@ class StateStack {
             }
         }
 
-        StateStack.redoStack.push(Sudoku.getCopy())
+        if (saveCurrentState) {
+            StateStack.redoStack.push(Sudoku.getCopy())
+        }
 
-    
         return StateStack.undoStack.pop()
     }
 
