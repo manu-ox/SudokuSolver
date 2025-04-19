@@ -7,6 +7,35 @@ const Title = Object.freeze({
     TIMEOUT: "timeout!"
 })
 
+const CSSId = Object.freeze({
+    TITLE: 'title',
+    TITLE_SPACE: 'title-space',
+    BOARD: 'board',
+
+    SPEED_DISPLAY: 'speed-display',
+    SPEED_REDUCER: 'speed-reducer',
+    SPEED_INCREASER: 'speed-increaser',
+
+    REDO_BUTTON: 'redo-button',
+    UNDO_BUTTON: 'undo-button',
+    SOLVE_BUTTON: 'solve-button',
+    RESET_BUTTON: 'reset-button',
+})
+
+const CSSClass = Object.freeze({
+    BOARD_ROW: 'board-row',
+    BLOCK_TABLE: 'block-table',
+    BLOCK_ROW: 'block-row',
+    CELL_SPACE: 'cell-space',
+
+    NORMAL_CELL: 'cell',
+    SELECTED_CELL: 'selected-cell',
+    INVALID_CELL: 'invalid-cell',
+
+    FASTFORWARD_BUTTON: 'fastforward-button',
+    CONTROL_BUTTON: 'control-button',
+})
+
 const SolveResult = Object.freeze({
     SUCCESS: 1,
     NOSULUTION: 0,
@@ -31,26 +60,27 @@ class Utils {
         Utils.editTitle(Title.DEFAULT)
         
         if (event.target.value != 0) {
-            event.target.className = 'selected-cell';
+            event.target.className = CSSClass.SELECTED_CELL;
         } else {
-            event.target.className = 'cell';
+            event.target.className = CSSClass.NORMAL_CELL;
         }
 
         Sudoku.validate()
     }
 
     static editTitle(text) {
-        document.getElementById('title').innerText = text;
+        document.getElementById(CSSId.TITLE).innerText = text;
     }
 
     static undoButtonClickHandler() {
-        const matrix = StateStack.popFromLeft({ saveCurrentState: SolveProcess.isTerminated() })
+        const matrix = StateStack.popFromLeft({ saveCurrentState: ! SolveProcess.isLocked() })
         SolveProcess.terminate()
 
         if (matrix) {
             Sudoku.restoreFrom(matrix)
         }
         Utils.editTitle(Title.DEFAULT)
+        Utils.updateUndoRedoButtonState()
     }
     static redoButtonClickHandler() {
         // Redo button act as fastforward button when solving in progress.
@@ -64,6 +94,7 @@ class Utils {
             Sudoku.restoreFrom(matrix)
         }
         Utils.editTitle(Title.DEFAULT)
+        Utils.updateUndoRedoButtonState()
     }
     static resetButtonClickHandler() {
         if (! SolveProcess.isLocked()) {
@@ -93,28 +124,70 @@ class Utils {
     static speedIncreaseButtonEvent() {
         SolveProcess.increaseSpeed()
         Utils.setSpeedDisplayText()
+        Utils.updateSpeedButtonState()
     }
     static speedReduceButtonEvent() {
         SolveProcess.reduceSpeed()
         Utils.setSpeedDisplayText()
+        Utils.updateSpeedButtonState()
     }
     static speedDisplayButtonEvent() {
-        SolveProcess.increaseSpeed(true)
+        SolveProcess.increaseSpeed({cycle: true})
         Utils.setSpeedDisplayText()
+        Utils.updateSpeedButtonState()
     }
 
     static setSpeedDisplayText() {
-        document.getElementById('speed-display').value = SolveProcess.getSpeedText()
+        document.getElementById(CSSId.SPEED_DISPLAY).value = SolveProcess.getSpeedText()
     }
 
     static makeFastforwardButton() {
-        document.getElementById('redo-button').className = 'fastforward-button'
+        document.getElementById(CSSId.REDO_BUTTON).className = CSSClass.FASTFORWARD_BUTTON
+        Utils.enableButton(CSSId.REDO_BUTTON)
     }
 
     static removeFastforwardButton() {
-        document.getElementById('redo-button').className = 'control-button'
+        document.getElementById(CSSId.REDO_BUTTON).className = CSSClass.CONTROL_BUTTON
+        if (StateStack.redoStack.length === 0) {
+            Utils.disableButton(CSSId.REDO_BUTTON)
+        }
     }
-    
+
+    static enableButton(id) {
+        document.getElementById(id).disabled = false
+    }
+
+    static disableButton(id) {
+        document.getElementById(id).disabled = true
+    }
+
+    static updateUndoRedoButtonState() {
+        if (StateStack.undoStack.length === 0) {
+            Utils.disableButton(CSSId.UNDO_BUTTON)
+        } else {
+            Utils.enableButton(CSSId.UNDO_BUTTON)
+        }
+        
+        if (StateStack.redoStack.length === 0) {
+            Utils.disableButton(CSSId.REDO_BUTTON)
+        } else {
+            Utils.enableButton(CSSId.REDO_BUTTON)
+        }
+    }
+
+    static updateSpeedButtonState() {
+        if (SolveProcess.speedIndex === SolveProcess.speedValues.length - 1) {
+            Utils.disableButton(CSSId.SPEED_INCREASER)
+        } else {
+            Utils.enableButton(CSSId.SPEED_INCREASER)
+        }
+        if (SolveProcess.speedIndex === 0) {
+            Utils.disableButton(CSSId.SPEED_REDUCER)
+        } else {
+            Utils.enableButton(CSSId.SPEED_REDUCER)
+        }
+    }
+
 }
 
 class SolveProcess {
@@ -133,7 +206,7 @@ class SolveProcess {
         )
     }
 
-    static increaseSpeed(cycle) {
+    static increaseSpeed(cycle=false) {
         if (SolveProcess.speedIndex === SolveProcess.speedValues.length - 1) {
             if (cycle)
                 SolveProcess.speedIndex = 0
@@ -259,18 +332,22 @@ class StateStack {
     static pushCurrentState() { 
         // Done by solve and reset processes
 
-        if (StateStack.undoStack.length !== 0) {
+        if (StateStack.undoStack.length === 0) {
+            StateStack.undoStack.push(Sudoku.getCopy());
+        } else {
             const lastMatrix = StateStack.undoStack[StateStack.undoStack.length - 1];
-
-            if (Sudoku.isCurrentMatrixEquals(lastMatrix)) return
+            // Not pushing same matrix
+            if (! Sudoku.isCurrentMatrixEquals(lastMatrix)) {
+                StateStack.undoStack.push(Sudoku.getCopy());
+            }
         }
 
-        StateStack.undoStack.push(Sudoku.getCopy());
-
         // Clearing redoStack as undoStack updated
-        while (StateStack.redoStack.length !== 0)
+        while (StateStack.redoStack.length !== 0) {
             StateStack.redoStack.pop()
+        }
 
+        Utils.updateUndoRedoButtonState();
     }
 
     static popFromLeft({saveCurrentState = true}) {
@@ -318,28 +395,30 @@ class Sudoku {
         Sudoku.drawBoard()
         Sudoku.enableButtons()
         Utils.setSpeedDisplayText()
+        Utils.updateSpeedButtonState()
+        Utils.updateUndoRedoButtonState()
     }
     
     static enableButtons() {
-        const undoButton = document.getElementById('undo-button');
+        const undoButton = document.getElementById(CSSId.UNDO_BUTTON);
         undoButton.addEventListener('click', Utils.undoButtonClickHandler)
 
-        const redoButton = document.getElementById('redo-button');
+        const redoButton = document.getElementById(CSSId.REDO_BUTTON);
         redoButton.addEventListener('click', Utils.redoButtonClickHandler)
 
-        const solveButton = document.getElementById('solve-button');
+        const solveButton = document.getElementById(CSSId.SOLVE_BUTTON);
         solveButton.addEventListener('click', Utils.solveButtonClickHandler)
 
-        const resetButton = document.getElementById('reset-button')
+        const resetButton = document.getElementById(CSSId.RESET_BUTTON)
         resetButton.addEventListener('click', Utils.resetButtonClickHandler)
 
-        const speedReducer = document.getElementById('speed-reducer')
+        const speedReducer = document.getElementById(CSSId.SPEED_REDUCER)
         speedReducer.addEventListener('click', Utils.speedReduceButtonEvent)
 
-        const speedIncreaser = document.getElementById('speed-increaser')
+        const speedIncreaser = document.getElementById(CSSId.SPEED_INCREASER)
         speedIncreaser.addEventListener('click', Utils.speedIncreaseButtonEvent)
 
-        const speedDisplay = document.getElementById('speed-display')
+        const speedDisplay = document.getElementById(CSSId.SPEED_DISPLAY)
         speedDisplay.addEventListener('click', Utils.speedDisplayButtonEvent)
     }
 
@@ -359,7 +438,7 @@ class Sudoku {
 
         function createCell(row, col) {
             const cell = document.createElement("select");
-            cell.className = 'cell';
+            cell.className = CSSClass.NORMAL_CELL;
             cell.id = `${row}${col}`;
             
             const defaultOption = document.createElement('option');
@@ -381,27 +460,27 @@ class Sudoku {
         }
 
         const title = document.createElement('h1')
-        title.id = 'title'
+        title.id = CSSId.TITLE
         title.innerText = Title.DEFAULT
-        document.getElementById('title-space').appendChild(title)
+        document.getElementById(CSSId.TITLE_SPACE).appendChild(title)
 
-        const boardTable = document.getElementById('board');
+        const boardTable = document.getElementById(CSSId.BOARD);
         for(let c=0; c < 3; c++) {
             const boardRows = document.createElement('tr');
-            boardRows.className = 'board-row';
+            boardRows.className = CSSClass.BOARD_ROW;
 
             for(let s=0; s < 3; s++) {
                 const blockContainer = document.createElement('td');
                 const blockTable = document.createElement('table');
-                blockTable.className = 'block-table';
+                blockTable.className = CSSClass.BLOCK_TABLE;
 
                 for(let r=0; r < 3; r++) {
                     const blockRows = document.createElement('tr');
-                    blockRows.className = 'block-row'
+                    blockRows.className = CSSClass.BLOCK_ROW
 
                     for(let i=0; i < 3; i++) {
                         const cellSpace = document.createElement('td');
-                        cellSpace.className = 'cell-space';
+                        cellSpace.className = CSSClass.CELL_SPACE;
 
                         const row = (c * 3) + r;
                         const col = (s * 3) + i;
@@ -455,11 +534,11 @@ class Sudoku {
         for (let row=0; row < 9; row++) {
             for (let col=0; col < 9; col++) {
                 if (Sudoku.getCellValue(row, col) === 0) {
-                    Sudoku.sudokuMatrix[row][col].className = 'cell'
+                    Sudoku.sudokuMatrix[row][col].className = CSSClass.NORMAL_CELL
                 } else if (Sudoku.isSafeValue(row, col)) {
-                    Sudoku.sudokuMatrix[row][col].className = 'selected-cell'
+                    Sudoku.sudokuMatrix[row][col].className = CSSClass.SELECTED_CELL
                 } else {
-                    Sudoku.sudokuMatrix[row][col].className = 'invalid-cell'
+                    Sudoku.sudokuMatrix[row][col].className = CSSClass.INVALID_CELL
                     isValid = false
                 }
             }
