@@ -332,15 +332,18 @@ class StateStack {
     static pushCurrentState() { 
         // Done by solve and reset processes
 
-        if (StateStack.undoStack.length === 0) {
-            StateStack.undoStack.push(Sudoku.getCopy());
-        } else {
-            const lastMatrix = StateStack.undoStack[StateStack.undoStack.length - 1];
-            // Not pushing same matrix
-            if (! Sudoku.isCurrentMatrixEquals(lastMatrix)) {
+        if (! Sudoku.isEmpty()) {
+            if (StateStack.undoStack.length === 0) {
                 StateStack.undoStack.push(Sudoku.getCopy());
+            } else {
+                const lastMatrix = StateStack.undoStack[StateStack.undoStack.length - 1];
+                // Not pushing same matrix
+                if (! Sudoku.isCurrentMatrixEquals(lastMatrix)) {
+                    StateStack.undoStack.push(Sudoku.getCopy());
+                }
             }
         }
+
 
         // Clearing redoStack as undoStack updated
         while (StateStack.redoStack.length !== 0) {
@@ -394,9 +397,6 @@ class Sudoku {
     static setup() {
         Sudoku.drawBoard()
         Sudoku.enableButtons()
-        Utils.setSpeedDisplayText()
-        Utils.updateSpeedButtonState()
-        Utils.updateUndoRedoButtonState()
     }
     
     static enableButtons() {
@@ -420,6 +420,10 @@ class Sudoku {
 
         const speedDisplay = document.getElementById(CSSId.SPEED_DISPLAY)
         speedDisplay.addEventListener('click', Utils.speedDisplayButtonEvent)
+
+        Utils.setSpeedDisplayText()
+        Utils.updateSpeedButtonState()
+        Utils.updateUndoRedoButtonState()
     }
 
     static drawBoard() {
@@ -583,6 +587,17 @@ class Sudoku {
         }
 
         return newMatrix
+    }
+
+    static isEmpty() {
+        for(let r=0; r < 9; r++) {
+            for(let c=0; c < 9; c++) {
+                if (Sudoku.getCellValue(r, c) !== 0) {
+                    return false
+                }
+            }
+        }
+        return true
     }
 
     static reset() {
