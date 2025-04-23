@@ -2,12 +2,12 @@
 
 #### Features
 
-- Iterative Backtracking
-- Customizable Input
-- Undo and Redo operations
-- Error Handling
+- Iterative Backtracking.
+- Customizable Input.
+- Undo and Redo operations.
+- Error Handling.
 
-
+---
 
 #### How it works
 
@@ -17,4 +17,3 @@
 4. Completion: Repeat until the puzzle is solved or determined unsolvable.
 
 ---
-Drop a star ⭐ if you like the project.
