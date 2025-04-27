@@ -1,3 +1,4 @@
+// Values for Sudoku title
 const Title = Object.freeze({
     DEFAULT: "sudoku solver",
     SOLVING: "solving..",
@@ -7,6 +8,7 @@ const Title = Object.freeze({
     TIMEOUT: "timeout!"
 })
 
+// CSS id values
 const CSSId = Object.freeze({
     TITLE: 'title',
     TITLE_SPACE: 'title-space',
@@ -22,6 +24,7 @@ const CSSId = Object.freeze({
     RESET_BUTTON: 'reset-button',
 })
 
+// CSS class values
 const CSSClass = Object.freeze({
     BOARD_ROW: 'board-row',
     BLOCK_TABLE: 'block-table',
@@ -36,6 +39,7 @@ const CSSClass = Object.freeze({
     CONTROL_BUTTON: 'control-button',
 })
 
+// Possible result values after solving
 const SolveResult = Object.freeze({
     SUCCESS: 1,
     NOSULUTION: 0,
@@ -44,10 +48,14 @@ const SolveResult = Object.freeze({
     TIMEOUT: -3
 })
 
-
+// Utility class
 class Utils {
     static sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
+    /**
+     * Create and returns a new matrix.
+     * @returns {number[][]} A matrix of numbers.
+     */
     static getNewMatrix() {
         const newMatrix = new Array(9);
         for(let i=0; i < 9; i++) {
@@ -56,6 +64,10 @@ class Utils {
         return newMatrix;
     }
 
+    /**
+     * Sudoku cell value change event.
+     * @param {Event} event - Event object.
+     */
     static sudokuValueChangeEvent(event) {
         Utils.editTitle(Title.DEFAULT)
         
@@ -68,10 +80,17 @@ class Utils {
         Sudoku.validate()
     }
 
+    /**
+     * Edit sudoku title.
+     * @param {string} text - Title for sudoku.
+     */
     static editTitle(text) {
         document.getElementById(CSSId.TITLE).innerText = text;
     }
 
+    /**
+     * Undo button click event handler.
+     */
     static undoButtonClickHandler() {
         const matrix = StateStack.popFromLeft({ saveCurrentState: ! SolveProcess.isLocked() })
         SolveProcess.terminate()
@@ -82,9 +101,13 @@ class Utils {
         Utils.editTitle(Title.DEFAULT)
         Utils.updateUndoRedoButtonState()
     }
+
+    /**
+     * Redo button click event handler.
+     */
     static redoButtonClickHandler() {
-        // Redo button act as fastforward button when solving in progress.
         if (SolveProcess.isLocked()) {
+            // Redo button act as fastforward button when solving in progress.
             return SolveProcess.fastForward()
         }
 
@@ -96,6 +119,10 @@ class Utils {
         Utils.editTitle(Title.DEFAULT)
         Utils.updateUndoRedoButtonState()
     }
+
+    /**
+     * Reset button click event handler.
+     */
     static resetButtonClickHandler() {
         if (! SolveProcess.isLocked()) {
             StateStack.pushCurrentState()
@@ -103,6 +130,9 @@ class Utils {
         Sudoku.reset()
     }
 
+    /**
+     * Solve button click event handler.
+     */
     static async solveButtonClickHandler() {
         if (SolveProcess.isLocked()) return
     
@@ -121,31 +151,51 @@ class Utils {
         }
     }
 
+    /**
+     * Speed increase button click event handler.
+     */
     static speedIncreaseButtonEvent() {
         SolveProcess.increaseSpeed()
         Utils.setSpeedDisplayText()
         Utils.updateSpeedButtonState()
     }
+
+    /**
+     * Speed decrease button click event handler.
+     */
     static speedReduceButtonEvent() {
         SolveProcess.reduceSpeed()
         Utils.setSpeedDisplayText()
         Utils.updateSpeedButtonState()
     }
+
+    /**
+     * Speed display button click event handler.
+     */
     static speedDisplayButtonEvent() {
         SolveProcess.increaseSpeed({cycle: true})
         Utils.setSpeedDisplayText()
         Utils.updateSpeedButtonState()
     }
 
+    /**
+     * Update speed display button text.
+     */
     static setSpeedDisplayText() {
         document.getElementById(CSSId.SPEED_DISPLAY).value = SolveProcess.getSpeedText()
     }
 
+    /**
+     * Convert redo button to fastforward button.
+     */
     static makeFastforwardButton() {
         document.getElementById(CSSId.REDO_BUTTON).className = CSSClass.FASTFORWARD_BUTTON
         Utils.enableButton(CSSId.REDO_BUTTON)
     }
 
+    /**
+     * Convert fastforward button back to redo button.
+     */
     static removeFastforwardButton() {
         document.getElementById(CSSId.REDO_BUTTON).className = CSSClass.CONTROL_BUTTON
         if (StateStack.redoStack.length === 0) {
@@ -153,14 +203,25 @@ class Utils {
         }
     }
 
+    /**
+     * Enable input button.
+     * @param {number} id - ID of the html element.
+     */
     static enableButton(id) {
         document.getElementById(id).disabled = false
     }
 
+    /**
+     * Disable input button.
+     * @param {number} id - ID of the html element.
+     */
     static disableButton(id) {
         document.getElementById(id).disabled = true
     }
 
+    /**
+     * Update state of undo and redo button by enabling/disabling.
+     */
     static updateUndoRedoButtonState() {
         if (StateStack.undoStack.length === 0) {
             Utils.disableButton(CSSId.UNDO_BUTTON)
@@ -175,6 +236,9 @@ class Utils {
         }
     }
 
+    /**
+     * Update state of speed control buttons by enabling/disabling.
+     */
     static updateSpeedButtonState() {
         if (SolveProcess.speedIndex === SolveProcess.speedValues.length - 1) {
             Utils.disableButton(CSSId.SPEED_INCREASER)
@@ -190,6 +254,7 @@ class Utils {
 
 }
 
+// Class for handling all solving tasks.
 class SolveProcess {
     static _isLocked = false
     static _isTerminated = false
@@ -200,12 +265,18 @@ class SolveProcess {
     static speedValues = [['0.25x', 256], ['0.5x', 128], ['1x', 32], ['2x', 8], ['4x', 1]];
     static speedIndex = SolveProcess.speedValues.length - 1
 
+    /**
+     * Slows down according to the current speed
+     */
     static async slowDown() {
         await Utils.sleep(
             SolveProcess.speedValues[SolveProcess.speedIndex][1]
         )
     }
 
+    /**
+     * Increaase speed
+     */
     static increaseSpeed(cycle=false) {
         if (SolveProcess.speedIndex === SolveProcess.speedValues.length - 1) {
             if (cycle)
@@ -215,46 +286,92 @@ class SolveProcess {
         }
     }
 
+    /**
+     * Decrease speed
+     */
     static reduceSpeed() {
         SolveProcess.speedIndex = Math.max(0, SolveProcess.speedIndex - 1)
     }
 
+    /**
+     * Get current speed text
+     * @returns {string} Current speed value.
+     */
     static getSpeedText() {
         return SolveProcess.speedValues[SolveProcess.speedIndex][0]
     }
 
+    /**
+     * Clear all settings
+     */
     static clearSettings() {
         SolveProcess._isTerminated = false
         SolveProcess._isFastForwarding = false
     }
 
+    /**
+     * Lock the solve process to prevent multiple process from running at the same time 
+     */
     static lock = () => {
         SolveProcess.clearSettings()
         SolveProcess._isLocked = true
         Sudoku.disableSelection()
     }
+
+    /**
+     * Unlock the solve process and make solve process available for another.
+     */
     static unlock = () => {
         SolveProcess.clearSettings()
         SolveProcess._isLocked = false
         Sudoku.enableSelection()
     }
+
+    /**
+     * Check if solve process is locked.
+     * @returns {boolean}
+     */
     static isLocked = () => { return SolveProcess._isLocked }
 
+    /**
+     * Terminate current solve process if running.
+     */
     static terminate = () => { SolveProcess._isTerminated = true }
+
+    /**
+     * Check if solve process is terminated.
+     * @returns {boolean}
+     */
     static isTerminated = () => { return SolveProcess._isTerminated }
 
+    /**
+     * Enable fastforwarding
+     */
     static fastForward = () => {
         SolveProcess._isFastForwarding = true
         SolveProcess._fastForwardingStartedTime = performance.now()
     }
+
+    /**
+     * Check if solve process is fastforwarding
+     * @returns {boolean}
+     */
     static isFastForwarding = () => { return SolveProcess._isFastForwarding }
 
+    /**
+     * Check if fastforwarding of solve process ran out of time.
+     * @returns {boolean}
+     */
     static isTimedOut = () => {
         if ((performance.now() - SolveProcess._fastForwardingStartedTime) > SolveProcess._fastForwardingTimeLimit)  
             return true
         return false
     }
 
+    /**
+     * Start solve process.
+     * @returns {keyof typeof SolveResult} 
+     */
     static async run() {
         const isValid = Sudoku.validate();
         if (! isValid) return SolveResult.INVALIDINPUT
@@ -267,6 +384,10 @@ class SolveProcess {
         Sudoku.copyPresetValues()
         Utils.makeFastforwardButton()
 
+        /**
+         * Increment a slot/cell.
+         * @returns {[number, number]} row and column of new slot/cell. 
+         */
         const incrementSlot = (row, col) => {
             const incremented_col = (col + 1) % 9
             if (incremented_col == 0) {
@@ -275,6 +396,10 @@ class SolveProcess {
             return [row, incremented_col]
         }
 
+        /**
+         * Increment slot/cell.
+         * @returns {[number, number]} row and column of new slot/cell. 
+         */
         const incrementNumber = (row, col) => {
             if (row === -1) return [-1, -1];
         
@@ -293,6 +418,10 @@ class SolveProcess {
             return incrementNumber(row, col - 1);
         }
 
+        /**
+         * Start solving sudoku.
+         * @returns {keyof typeof SolveResult} 
+         */
         const solveSudoku = async () => {
             let row=0, col=0;
         
@@ -325,19 +454,22 @@ class SolveProcess {
     }
 }
 
+// Class for saving and retriving states for handling undo and redo operation using stacks.
 class StateStack {
     static undoStack = new Array();
     static redoStack = new Array();
 
+    /**
+     * Push current sudoku matrix to undo stack.
+     * Done by solve process and reset processes.
+     */
     static pushCurrentState() { 
-        // Done by solve and reset processes
-
         if (! Sudoku.isEmpty()) {
             if (StateStack.undoStack.length === 0) {
                 StateStack.undoStack.push(Sudoku.getCopy());
             } else {
                 const lastMatrix = StateStack.undoStack[StateStack.undoStack.length - 1];
-                // Not pushing same matrix
+                // Not pushing last matrix is same as the matrix to save
                 if (! Sudoku.isCurrentMatrixEquals(lastMatrix)) {
                     StateStack.undoStack.push(Sudoku.getCopy());
                 }
@@ -353,9 +485,11 @@ class StateStack {
         Utils.updateUndoRedoButtonState();
     }
 
+    /**
+     * Pop from undo stack. Undo operation.
+     * @returns {number[][]} Sudoku matrix.
+     */
     static popFromLeft({saveCurrentState = true}) {
-        // Done by undo operation
-
         if (StateStack.undoStack.length === 0) return
 
         const len = StateStack.redoStack.length
@@ -372,9 +506,11 @@ class StateStack {
         return StateStack.undoStack.pop()
     }
 
-    static popFromRight() {
-        // Done by redo operation
-        
+    /**
+     * Pop from redo stack. Redo operation.
+     * @returns {number[][]} Sudoku matrix.
+     */
+    static popFromRight() {        
         if (StateStack.redoStack.length === 0) return
 
         const len = StateStack.undoStack.length
@@ -390,15 +526,22 @@ class StateStack {
     }
 }
 
+// Class for handling sudoku operations.
 class Sudoku {
     static sudokuMatrix = Utils.getNewMatrix();
     static sudokuPresetMatrix = Utils.getNewMatrix();
 
+    /**
+     * Setup Sudoku.
+     */
     static setup() {
         Sudoku.drawBoard()
         Sudoku.enableButtons()
     }
-    
+
+    /**
+     * Setup buttons and add respective event listeners.
+     */
     static enableButtons() {
         const undoButton = document.getElementById(CSSId.UNDO_BUTTON);
         undoButton.addEventListener('click', Utils.undoButtonClickHandler)
@@ -426,6 +569,9 @@ class Sudoku {
         Utils.updateUndoRedoButtonState()
     }
 
+    /**
+     * Create sudoku board.
+     */
     static drawBoard() {
         /* Function to create Sudoku board
         block = 3x3 cells
@@ -440,6 +586,9 @@ class Sudoku {
         +--------------------+
         */
 
+        /**
+         * Creates a cell, add event listeners and returns it.
+         */
         function createCell(row, col) {
             const cell = document.createElement("select");
             cell.className = CSSClass.NORMAL_CELL;
@@ -501,6 +650,10 @@ class Sudoku {
         }
     }
 
+    /**
+     * Check if a number is safe for a cell or not.
+     * @returns {boolean}
+     */
     static isSafeValue(row, col) {
         const number = Sudoku.getCellValue(row, col);
 
@@ -533,6 +686,9 @@ class Sudoku {
         return true;
     }
 
+    /**
+     * Validates the sudoku matrix and mark the cell as selected, not-selected or invalid.
+     */
     static validate() {
         let isValid = true;
         for (let row=0; row < 9; row++) {
@@ -550,14 +706,25 @@ class Sudoku {
         return isValid
     }
 
+    /**
+     * Get cell value from the sudoku matrix.
+     * @returns {number} Cell value.
+     */
     static getCellValue(row, col) {
         return Number(Sudoku.sudokuMatrix[row][col].value);
     }
 
+    /**
+     * Set new value to the cell of sudoku matrix.
+     */
     static setCellValue(row, col, value) {
         Sudoku.sudokuMatrix[row][col].selectedIndex = value;
     }
 
+    /**
+     * Check if current matrix is equal to given matrix.
+     * @returns {boolean}.
+     */
     static isCurrentMatrixEquals(matrix) {
         for(let row=0; row < 9; row++) {
             for(let col=0; col < 9; col++) {
@@ -569,6 +736,9 @@ class Sudoku {
         return true
     }
 
+    /**
+     * Copy the values of the sudoku matrix to preset matrix (needed for solving).
+     */
     static copyPresetValues() {
         for (let row=0; row < 9; row++) {
             for (let col=0; col < 9; col++) {
@@ -577,6 +747,10 @@ class Sudoku {
         }
     }
 
+    /**
+     * Get a copy of the current sudoku matrix.
+     * @returns {number[][]} Sudoku matrix.
+     */
     static getCopy() {
         const newMatrix = Utils.getNewMatrix()
 
@@ -589,6 +763,10 @@ class Sudoku {
         return newMatrix
     }
 
+    /**
+     * Check if the current sudoku matrix is empty or not.
+     * @returns {boolean}.
+     */
     static isEmpty() {
         for(let r=0; r < 9; r++) {
             for(let c=0; c < 9; c++) {
@@ -600,6 +778,9 @@ class Sudoku {
         return true
     }
 
+    /**
+     * Clear all the values of sudoku matrix.
+     */
     static reset() {
         SolveProcess.terminate()
         for (let row=0; row < 9; row++) {
@@ -611,6 +792,9 @@ class Sudoku {
         Utils.editTitle(Title.DEFAULT)
     }
 
+    /**
+     * Disable updating of sudoku cell values.
+     */
     static disableSelection() {
         for(let r=0; r < 9; r++) {
             for(let c=0; c < 9; c++) {
@@ -619,6 +803,9 @@ class Sudoku {
         }
     }
 
+    /**
+     * Enable updating of sudoku cell values.
+     */
     static enableSelection() {
         for(let r=0; r < 9; r++) {
             for(let c=0; c < 9; c++) {
@@ -627,6 +814,9 @@ class Sudoku {
         }
     }
 
+    /**
+     * Restore sudoku matrix from a give matrix.
+     */
     static restoreFrom(matrix) {
         for(let row=0; row < 9; row++) {
             for(let col=0; col < 9; col++) {
