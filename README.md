@@ -17,3 +17,6 @@
 4. Completion: Repeat until the puzzle is solved or determined unsolvable.
 
 ---
+
+
+[![](https://xstats.xoid.me/stats/manu-ox/sudokusolver)](https://stats.xoid.me/stats/manu-ox/sudokusolver)
